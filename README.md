@@ -160,7 +160,7 @@ Run exactly one Uvicorn process/worker:
 .venv/Scripts/python.exe -m uvicorn counterfact.api:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-Backend docs: http://127.0.0.1:8000/docs. There is no website yet.
+Backend docs: http://127.0.0.1:8000/docs. UI: http://127.0.0.1:5173/.
 One asyncio queue executes one inference job at a time, with at most four waiting;
 additional submissions get 429. Runs have a fixed 120-attempt cap; minimizations 60.
 On startup, old queued/running jobs and runs become interrupted, with partial evidence
@@ -175,6 +175,9 @@ run it bound to 127.0.0.1, with one worker.
 | GET | /api/health | Health and active/waiting counts |
 | GET | /api/models | Profile names, key_present boolean, last status; never keys |
 | GET | /api/suites | Known synthetic suite metadata |
+| GET | /api/runs | Latest recorded runs, status, cache/live and budget metadata |
+| GET | /api/runs/{id}/cases | Read-only evidence summaries for the run |
+| GET | /api/runs/{id}/cases/{case_id} | Both chart hashes, questions, expected answers, observations and eligibility |
 | POST | /api/runs | suite_id, model_profile, fresh=false, optional limit 1-20; 202/run_id |
 | GET | /api/runs/{id} | Progress, results, cache/live counts and attempts/budget |
 | POST | /api/runs/{id}/cancel | Idempotent cancellation |
@@ -203,7 +206,7 @@ Invoke-RestMethod "http://127.0.0.1:8000/api/runs/$($run.run_id)"
 counterfact/ contains schemas, reference logic, Agg renderer, strict scorer,
 compatible adapter, cache/check/runner, minimizer, SQLite store, job service and thin
 API handlers. scripts/ has generation, preflight, pilot, rescore and real minimization
-commands. tests/ has offline unit/integration tests; frontend/ is reserved for Phase 5.
+commands. tests/ has offline unit/integration tests; frontend/ contains the React investigation page.
 Data, recordings, .env, virtual environments and work files are gitignored.
 
 [Chartographer](https://github.com/compling-wat/Chartographer), pinned commit
@@ -228,7 +231,7 @@ debugging, C-Reduce and metamorphic testing; no claim of being first is made.
 .venv/Scripts/python.exe -m pip check
 ```
 
-Phases 1, 1b, 2, 2b, 2c, 3 and 4 are implemented. Phase 5 is not started.
+Phases 1, 1b, 2, 2b, 2c, 3, 4 and 5 are implemented. Phase 6 has not started.
 No UI, comparison, Ollama, public deployment or new GitHub publication was performed
 in Phases 3-4. Stop at the approved phase boundary for the user's next instruction.
 
@@ -249,3 +252,30 @@ a finished step: restored minimization attempt counts reflect persisted evidence
 an invented reconstruction of an unrecorded in-flight HTTP request. Such jobs are
 interrupted and never resumed automatically. Full completed recordings retain exact
 attempt counts and fresh confirmation evidence.
+
+## Frontend (Phase 5)
+
+In a second terminal, from the repository root:
+
+```powershell
+npm ci --prefix frontend
+npm run dev --prefix frontend
+```
+
+Open http://127.0.0.1:5173/. Vite proxies `/api` to the backend on port 8000.
+The page shows existing completed evidence when available; page load makes no
+inference calls. Start a run explicitly to acquire missing slots, or enable fresh
+acquisition to bypass cached observations. API keys remain in the backend `.env`.
+Select a case to inspect all responses as plain text. Confirmed failures can be
+minimized, with a 60-attempt cap; only confirmed results can be saved and downloaded.
+An existing saved minimization appears automatically for its matching case.
+Disconnected polling pauses, retains evidence, and retries with bounded backoff.
+
+```powershell
+npm run build --prefix frontend
+npm run typecheck --prefix frontend
+```
+
+There is no ESLint configuration in this minimal frontend. Model comparison is
+explicitly marked unimplemented. The UI is local development tooling, not a public
+authenticated deployment. No new real inference was performed for Phase 5 UI checks.
