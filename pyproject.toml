@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools==81.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "counterfact"
+version = "0.1.0"
+description = "Valid bar-chart pairs and visual regression tests for vision-language models"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+dependencies = [
+  "fastapi==0.129.2",
+  "pydantic==2.12.5",
+  "matplotlib==3.10.8",
+  "httpx==0.28.1",
+  "uvicorn==0.41.0",
+  "python-dotenv==1.2.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==9.0.3", "ruff==0.15.1"]
+
+[tool.setuptools.packages.find]
+include = ["counterfact*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["work", "outputs", "data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

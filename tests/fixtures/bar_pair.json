@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "id": "lab-computers",
+  "seed": 42,
+  "chart": {
+    "type": "bar",
+    "categories": [
+      {"id": "lab_a", "label": "Lab A", "value": 40},
+      {"id": "lab_b", "label": "Lab B", "value": 60},
+      {"id": "lab_c", "label": "Lab C", "value": 25}
+    ]
+  },
+  "question": {"type": "largest_category"},
+  "mutations": [{"type": "change_value", "category_id": "lab_a", "value": 80}]
+}

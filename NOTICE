@@ -1,0 +1,16 @@
+CounterFact
+Copyright 2026 CounterFact contributors
+
+This product includes adapted code from Chartographer:
+https://github.com/compling-wat/Chartographer
+Commit: 046a622103733986db6e6b1b821cbc546b779192
+Authors: Yifan Jiang, Dae Yon Hwang, Jesse C. Cresswell, Freda Shi
+License: Apache License, Version 2.0
+
+counterfact/upstream.py adapts family_member_row and write_jsonl from
+src/pipeline/datasets/export_chart_question_families.py. Changes are noted
+in that file. CounterFact rendering, validation and storage are independently
+implemented. No upstream model predictions or dataset images are bundled.
+
+Research: Chartographer: Counterfactual Chart Generation for Evaluating
+Vision-Language Models, https://arxiv.org/abs/2605.27311
