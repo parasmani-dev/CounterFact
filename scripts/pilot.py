@@ -9,18 +9,7 @@ from counterfact.config import Settings
 from counterfact.runner import EvaluationProfile, run_suite
 from counterfact.score import SCORER_VERSION
 from counterfact.store import Store
-from counterfact.suites import HardSuite, generate_suite
-
-
-def balanced_order(suite: HardSuite) -> HardSuite:
-    selected = []
-    for kind in ("largest_category", "value_lookup", "above_threshold"):
-        selected.extend([f for f in suite.families if f.spec.question.type == kind][:2])
-    chosen = {f.family_id for f in selected}
-    remaining = [f for f in suite.families if f.family_id not in chosen]
-    return HardSuite.model_validate(
-        suite.model_copy(update={"families": selected + remaining}).model_dump()
-    )
+from counterfact.suites import HardSuite, balanced_order, generate_suite
 
 
 def print_case(case: dict) -> None:

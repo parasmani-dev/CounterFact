@@ -15,7 +15,19 @@ def _parse(raw_text: str) -> Any:
     match = _FENCE.fullmatch(text)
     if match:
         text = match.group(1).strip()
-    value = json.loads(text)
+
+    def reject_constant(value):
+        raise ValueError("Nonfinite constants are not JSON")
+
+    def unique_object(pairs):
+        obj = {}
+        for key, value in pairs:
+            if key in obj:
+                raise ValueError("Duplicate JSON keys are ambiguous")
+            obj[key] = value
+        return obj
+
+    value = json.loads(text, parse_constant=reject_constant, object_pairs_hook=unique_object)
     if not isinstance(value, dict) or set(value) != {"answer"}:
         raise ValueError("response must be an object with only an answer key")
     return value["answer"]

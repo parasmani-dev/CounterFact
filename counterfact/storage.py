@@ -32,7 +32,7 @@ class PairStore:
         self.root.mkdir(parents=True, exist_ok=True)
         with self.connect() as connection:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1, 2):
+            if version not in (0, 1, 2, 3, 4):
                 raise RuntimeError("Unsupported database schema version")
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute(

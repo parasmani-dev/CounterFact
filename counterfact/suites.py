@@ -139,3 +139,14 @@ def generate_suite(
         json.dumps(suite.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8"
     )
     return suite
+
+
+def balanced_order(suite: HardSuite) -> HardSuite:
+    selected = []
+    for kind in ("largest_category", "value_lookup", "above_threshold"):
+        selected.extend([f for f in suite.families if f.spec.question.type == kind][:2])
+    chosen = {f.family_id for f in selected}
+    remaining = [f for f in suite.families if f.family_id not in chosen]
+    return HardSuite.model_validate(
+        suite.model_copy(update={"families": selected + remaining}).model_dump()
+    )

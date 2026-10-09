@@ -7,6 +7,12 @@ class BudgetExceeded(RuntimeError):
     pass
 
 
+class DispatchStopped(RuntimeError):
+    def __init__(self, reason):
+        self.reason = reason
+        super().__init__(reason)
+
+
 class Budget:
     def __init__(self, cap: int):
         if type(cap) is not int or cap < 0:

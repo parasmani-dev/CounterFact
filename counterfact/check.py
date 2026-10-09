@@ -6,7 +6,7 @@ import uuid
 from collections import Counter
 
 from counterfact.adapter import PROMPT_VERSION, OpenAICompatibleAdapter
-from counterfact.budget import Budget
+from counterfact.budget import Budget, DispatchStopped
 from counterfact.score import SCORER_VERSION, score_response
 from counterfact.store import Store
 
@@ -71,7 +71,14 @@ def run_check(
     for slot in range(3):
         if slot in cached:
             continue
-        result = adapter.complete(image_bytes, question.strip(), budget=budget)
+        before = budget.used
+        try:
+            result = adapter.complete(image_bytes, question.strip(), budget=budget)
+        except DispatchStopped as exc:
+            terminal_error = exc.reason
+            attempts_used += budget.used - before
+            live_requests += int(budget.used > before)
+            break
         attempts_used += result["attempts_used"]
         live_requests += int(result["attempts_used"] > 0)
         budget_exhausted = result.get("budget_exhausted", False)

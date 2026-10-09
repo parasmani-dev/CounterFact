@@ -8,6 +8,7 @@ from counterfact.adapter import InferenceConfig, OpenAICompatibleAdapter
 from counterfact.budget import Budget
 from counterfact.check import run_check
 from counterfact.config import Settings
+from counterfact.minimize import DispatchStopped
 from counterfact.reference import answer, question_text
 from counterfact.score import SCORER_VERSION
 from counterfact.store import Store
@@ -40,6 +41,9 @@ def run_suite(
     budget: Budget,
     limit: int | None = None,
     on_progress: Callable[[dict], None] | None = None,
+    *,
+    run_id: str | None = None,
+    cancel_flag=None,
 ) -> dict:
     if isinstance(profile, str):
         if profile != "gemma":
@@ -53,7 +57,11 @@ def run_suite(
         raise ValueError("limit must be a positive integer")
     store = profile.store
     store.initialize()
-    run_id = store.start_run(suite.suite_id, profile.name, fresh, budget.report())
+    if run_id is None:
+        run_id = store.start_run(suite.suite_id, profile.name, fresh, budget.report())
+    else:
+        with store.connect() as connection:
+            connection.execute("UPDATE run SET status='running' WHERE id=?", (run_id,))
     results = []
     errors = Counter()
     cached_count = live_count = live_requests = invalid_count = 0
@@ -62,6 +70,9 @@ def run_suite(
     failures = []
     try:
         for family in suite.families[:limit]:
+            if cancel_flag is not None and cancel_flag.is_set():
+                status, message = "cancelled", "Run cancelled; partial results saved."
+                break
             manifest = store.create(family.spec)
             sides = {}
             for side, chart in (
@@ -69,16 +80,20 @@ def run_suite(
                 ("transformed", family.spec.transformed()),
             ):
                 image = (store.root / "pairs" / manifest["id"] / f"{side}.png").read_bytes()
-                check = run_check(
-                    image,
-                    question_text(chart, family.spec.question),
-                    answer(chart, family.spec.question),
-                    family.spec.question.type,
-                    profile.adapter,
-                    store,
-                    budget,
-                    fresh=fresh,
-                )
+                try:
+                    check = run_check(
+                        image,
+                        question_text(chart, family.spec.question),
+                        answer(chart, family.spec.question),
+                        family.spec.question.type,
+                        profile.adapter,
+                        store,
+                        budget,
+                        fresh=fresh,
+                    )
+                except DispatchStopped:
+                    status, message = "cancelled", "Run cancelled; partial results saved."
+                    break
                 sides[side] = check
                 store.save_case(run_id, family.family_id, side, check, budget.report())
                 errors.update(check["errors"])
@@ -99,6 +114,8 @@ def run_suite(
                         "rate_limited",
                         "Persistent rate limit; stopped with partial results saved.",
                     )
+                elif check["terminal_error"] == "cancelled":
+                    status, message = "cancelled", "Run cancelled; partial results saved."
                 elif check["budget_exhausted"]:
                     status, message = (
                         "budget_exhausted",
@@ -117,11 +134,14 @@ def run_suite(
                     )
                 if status != "completed":
                     break
+            if "original" not in sides:
+                break
             original = sides["original"]
             transformed = sides.get("transformed")
             result = {
                 "case_id": family.family_id,
                 "question_type": family.spec.question.type,
+                "artifacts": {m["variant"]: m["image_hash"] for m in manifest["members"]},
                 "original": original,
                 "transformed": transformed,
                 "pair_status": pair_status(

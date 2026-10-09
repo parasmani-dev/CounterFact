@@ -4,6 +4,7 @@ import json
 from collections import Counter, defaultdict
 
 from counterfact.config import Settings
+from counterfact.evidence import case_observations
 from counterfact.reference import answer
 from counterfact.score import SCORER_VERSION, score_response
 from counterfact.store import Store
@@ -15,26 +16,28 @@ def rescore_stored(store: Store, suite: HardSuite) -> dict:
     derived = {}
     groups = defaultdict(list)
     with store.connect() as connection:
-        rows = connection.execute(
-            "SELECT cr.case_id,cr.side,o.id,o.slot,o.raw_text,o.group_key "
-            "FROM observation o JOIN case_result cr ON cr.group_key=o.group_key "
-            "ORDER BY o.acquired_at,o.id"
+        cases = connection.execute(
+            "SELECT cr.*,r.created_at,r.finished_at,r.budget_json "
+            "FROM case_result cr JOIN run r ON cr.run_id=r.id ORDER BY r.created_at"
         ).fetchall()
-    for row in rows:
-        if row["id"] in derived:
-            continue
-        spec = families[row["case_id"]].spec
-        chart = spec.chart if row["side"] == "original" else spec.transformed()
-        score = score_response(row["raw_text"], spec.question.type, answer(chart, spec.question))
-        derived[row["id"]] = {
-            "id": row["id"],
-            "case_id": row["case_id"],
-            "side": row["side"],
-            "slot": row["slot"],
-            "scorer_version": SCORER_VERSION,
-            **score,
-        }
-        groups[(row["case_id"], row["side"], row["group_key"])].append(score["status"])
+        for case in cases:
+            spec = families[case["case_id"]].spec
+            chart = spec.chart if case["side"] == "original" else spec.transformed()
+            for row in case_observations(connection, case):
+                if row["id"] in derived:
+                    continue
+                score = score_response(
+                    row["raw_text"], spec.question.type, answer(chart, spec.question)
+                )
+                derived[row["id"]] = {
+                    "id": row["id"],
+                    "case_id": case["case_id"],
+                    "side": case["side"],
+                    "slot": row["slot"],
+                    "scorer_version": SCORER_VERSION,
+                    **score,
+                }
+                groups[(case["case_id"], case["side"], row["group_key"])].append(score["status"])
     verdicts = Counter()
     for statuses in groups.values():
         verdict = "inconclusive"

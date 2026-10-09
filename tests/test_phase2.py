@@ -228,7 +228,7 @@ def test_migration_preserves_pairs_and_is_idempotent(tmp_path, pair_payload):
     assert new.get(original["id"]) == original
     old.initialize()  # Old pair API continues to work and cannot downgrade v2.
     with new.connect() as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 4
         assert connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert connection.execute("SELECT COUNT(*) FROM pairs").fetchone()[0] == 1
         with pytest.raises(sqlite3.IntegrityError):
