@@ -16,6 +16,7 @@ from starlette.exceptions import HTTPException
 from counterfact import __version__
 from counterfact.config import Settings
 from counterfact.service import JobService, ServiceError
+from counterfact.views import case_detail, cases_list, runs_list
 
 logger = logging.getLogger("counterfact")
 
@@ -161,6 +162,18 @@ def create_app(settings: Settings | None = None, *, adapter_factory=None) -> Fas
     async def start_run(body: RunBody):
         job_id = await service.start_run(body.model_dump())
         return {"run_id": job_id, "status": "queued"}
+
+    @app.get("/api/runs")
+    def list_runs():
+        return redact(runs_list(service))
+
+    @app.get("/api/runs/{job_id}/cases")
+    def list_cases(job_id: str):
+        return redact(cases_list(service, job_id))
+
+    @app.get("/api/runs/{job_id}/cases/{case_id}")
+    def read_case(job_id: str, case_id: str):
+        return redact(case_detail(service, job_id, case_id))
 
     @app.get("/api/runs/{job_id}")
     def run(job_id: str):
