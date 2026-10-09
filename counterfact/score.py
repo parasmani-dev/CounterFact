@@ -5,6 +5,8 @@ import math
 import re
 from typing import Any
 
+SCORER_VERSION = "1"
+
 _FENCE = re.compile(r"\A```(?:json)?[ \t]*\r?\n?(.*?)\r?\n?```\Z", re.DOTALL | re.IGNORECASE)
 
 

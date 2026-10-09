@@ -50,8 +50,11 @@ def main() -> int:
     print(f"Latency: {result['latency_ms']} ms")
     print(f"Attempts: {result['attempts_used']}")
     print(f"Provider/model: {result['provider']} / {result['model']}")
+    print(f"Request params: {json.dumps(result['request_params'], sort_keys=True)}")
+    print(f"Response metadata: {json.dumps(result['response_metadata'], sort_keys=True)}")
     if not result["ok"]:
         print(f"Preflight error: {result['error_type']}")
+        print(f"Provider error message: {result['error_message'] or '<none>'}")
         return 1
     return 0
 

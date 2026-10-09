@@ -32,7 +32,7 @@ class PairStore:
         self.root.mkdir(parents=True, exist_ok=True)
         with self.connect() as connection:
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1):
+            if version not in (0, 1, 2):
                 raise RuntimeError("Unsupported database schema version")
             connection.execute("PRAGMA journal_mode=WAL")
             connection.execute(
@@ -40,7 +40,8 @@ class PairStore:
                 "id TEXT PRIMARY KEY, spec TEXT NOT NULL, manifest TEXT NOT NULL, "
                 "created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')))"
             )
-            connection.execute("PRAGMA user_version=1")
+            if version == 0:
+                connection.execute("PRAGMA user_version=1")
 
     def check(self) -> None:
         with self.connect() as connection:
